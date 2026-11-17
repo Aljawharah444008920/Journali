@@ -5,10 +5,11 @@
 //  Created by Aljawharah Alotaibi on 01/06/1448 AH.
 //
 // الهوم بيج مع البطاقات
+
 import SwiftUI
 import SwiftData
-private enum JournalSheet: Identifiable { //عرفت مجموعه وحطيت تو كيس
 
+private enum JournalSheet: Identifiable { //عرفت مجموعه وحطيت تو كيس
     case new
     case edit(Journal)
 
@@ -18,35 +19,35 @@ private enum JournalSheet: Identifiable { //عرفت مجموعه وحطيت ت�
             return "new"
 
         case .edit(let journal):
-            return "edit-\(journal.id.uuidString)"//يرجع اليوميه المحفوظه
+            return "edit-\(journal.id.uuidString)" //يرجع اليوميه المحفوظه
         }
     }
 }
+
 struct EmptyStateView: View {
 
     @Environment(\.modelContext) private var modelContext //يستقبل اليومية الجديدة، ويتابع التعديلات، ويطلب حفظها، ويسترجع البيانات الموجودة.
 
     @StateObject private var viewModel = EmptyStateViewModel() //هنا سويت متغير عشان اربطه بالفيو مودل
+
     @State private var activeSheet: JournalSheet? //هنا نحدد هل بيضغط زر الاضافه او بيعدل
+
+    @State private var journalToDelete: Journal?
+    @State private var showDeleteConfirmation = false
+
     var body: some View {
-
         NavigationStack { //عشان العنوان والتنقل
-
             ZStack {
-
                 Color.black
                     .ignoresSafeArea()
 
                 if viewModel.journals.isEmpty { //شاشه يتاكد اذا المصفوفه فاضيه رح هنا
 
                     // MARK: - Empty State
-
                     VStack(spacing: 0) {
-
                         Spacer()
 
                         VStack(spacing: 0) {
-
                             Image("EmptyState")
                                 .resizable()
                                 .scaledToFit()
@@ -75,15 +76,13 @@ struct EmptyStateView: View {
                 } else { //اذا مو فاضيه طلع كل الجورنال المحفوظه
 
                     // MARK: - Saved Journals
-
                     List(viewModel.sortedJournals) { journal in //لست اليوميات المرتبه من الفيو مودل
 
                         ZStack(alignment: .topTrailing) { //مكان ظهور البوك مارك
 
                             // MARK: - Journal Card
-
                             Button {
-                                activeSheet = .edit(journal)//بفتح اليومية للتعديل
+                                activeSheet = .edit(journal) //بفتح اليومية للتعديل
                             } label: { //تصميم بطاقه اليوميه
 
                                 VStack(alignment: .leading, spacing: 8) {
@@ -142,16 +141,12 @@ struct EmptyStateView: View {
                             .buttonStyle(.plain)
 
                             // MARK: - Bookmark Button
-
                             Button {
-
                                 viewModel.toggleBookmark( //يسمح بعكس قيمه البوك مارك
                                     journal,
                                     context: modelContext
                                 )
-
                             } label: {
-
                                 Image(
                                     systemName: journal.isBookmarked
                                         ? "bookmark.fill"
@@ -170,7 +165,6 @@ struct EmptyStateView: View {
                             .buttonStyle(.plain)
                             .padding(8)
                         }
-
                         .listRowInsets(
                             EdgeInsets(
                                 top: 6,
@@ -179,10 +173,21 @@ struct EmptyStateView: View {
                                 trailing: 16
                             )
                         )
-                        .listRowSeparator(.hidden)// اخف الخط بين اليوميه والثانيه
-                        .listRowBackground(Color.clear)//شيل خلفيه البطاقه
-                    }
 
+                        // MARK: - Swipe to Delete
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button {
+                                journalToDelete = journal
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
+
+                        .listRowSeparator(.hidden) // اخف الخط بين اليوميه والثانيه
+                        .listRowBackground(Color.clear) //شيل خلفيه البطاقه
+                    }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                     .contentMargins(
@@ -194,18 +199,14 @@ struct EmptyStateView: View {
             }
 
             // MARK: - Native Navigation Bar
-
             .navigationTitle("Journal")
             .toolbarTitleDisplayMode(.inlineLarge)
 
             // MARK: - Native Toolbar
-
             .toolbar {
-
                 ToolbarItemGroup(placement: .topBarTrailing) {
 
                     Menu {
-
                         Button("Sort by Bookmark") {
                             viewModel.sortOption = .bookmark
                         }
@@ -213,9 +214,7 @@ struct EmptyStateView: View {
                         Button("Sort by Entry Date") {
                             viewModel.sortOption = .entryDate
                         }
-
                     } label: {
-
                         Image(
                             systemName: "line.3.horizontal.decrease"
                         )
@@ -230,29 +229,24 @@ struct EmptyStateView: View {
             }
 
             // MARK: - Native Search
-
             .searchable(
                 text: $viewModel.searchText,
                 placement: .toolbar,
                 prompt: "Search"
             )
-           
         }
 
         // MARK: - Journal Sheet
-
         .sheet(
-            item: $activeSheet,//يعني ارجع لقيمه الشيت هل نيو ولا ادت
+            item: $activeSheet, //يعني ارجع لقيمه الشيت هل نيو ولا ادت
             onDismiss: {
                 viewModel.loadJournals(context: modelContext)
             }
         ) { sheet in
-
             Group {
                 switch sheet {
-
                 case .new:
-                    NewJournalView() //اذا كانت جديده ناد هذي 
+                    NewJournalView() //اذا كانت جديده ناد هذي
 
                 case .edit(let journal):
                     NewJournalView(journal: journal)
@@ -262,9 +256,25 @@ struct EmptyStateView: View {
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(28)
         }
-        // MARK: - Load Saved Journals
 
-        .onAppear {//استدعاء لليوميات
+        // MARK: - Delete Confirmation
+        .alert("Delete Journal?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                journalToDelete = nil
+            }
+
+            Button("Delete", role: .destructive) {
+                if let journal = journalToDelete {
+                    viewModel.deleteJournal(journal, context: modelContext)
+                    journalToDelete = nil
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this journal? This action cannot be undone.")
+        }
+
+        // MARK: - Load Saved Journals
+        .onAppear { //استدعاء لليوميات
             viewModel.loadJournals(context: modelContext)
         }
 
@@ -272,7 +282,6 @@ struct EmptyStateView: View {
         .preferredColorScheme(.dark)
     }
 }
-
 
 #Preview {
     EmptyStateView()

@@ -22,6 +22,7 @@ struct JournaliApp: App {
                     ContentView()
                 }
             }
+            .preferredColorScheme(.dark)
             .task {//مهمه تتعلق بالواجهه
                 try? await Task.sleep(for: .seconds(2))
                 showHome = true

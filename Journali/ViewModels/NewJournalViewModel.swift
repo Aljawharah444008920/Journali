@@ -16,7 +16,7 @@ final class NewJournalViewModel: ObservableObject {
     @Published var content = ""
 
     private let journalToEdit: Journal?
-    private let originalTitle: String //هذا يحفظ اذا كانت موجوده
+    private let originalTitle: String //هذا يحفظ العنوان الاصلي اذا كانت موجوده
     private let originalContent: String
 
     let journalDate: Date
@@ -42,10 +42,13 @@ final class NewJournalViewModel: ObservableObject {
     // MARK: - Validation
 
     var canSave: Bool {
-        !content.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        ).isEmpty //اقدر احفظها اذا كان الكونتنت مو فاضي
+        let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasContent = !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        return hasTitle || hasContent
     }
+ //اقدر احفظها
+    
 
     var journalTitle: String {
         let cleanedTitle = title.trimmingCharacters(

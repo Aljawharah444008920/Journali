@@ -4,24 +4,40 @@
 //
 //  Created by Aljawharah Alotaibi on 01/06/1448 AH.
 //
-
+// الهوم بيج مع البطاقات
 import SwiftUI
 import SwiftData
-struct EmptyStateView: View {
-    @Environment(\.modelContext) private var modelContext
-    @StateObject private var viewModel = EmptyStateViewModel()
-    @State private var showNewJournal = false
+private enum JournalSheet: Identifiable { //عرفت مجموعه وحطيت تو كيس
 
+    case new
+    case edit(Journal)
+
+    var id: String {
+        switch self {
+        case .new:
+            return "new"
+
+        case .edit(let journal):
+            return "edit-\(journal.id.uuidString)"//يرجع اليوميه المحفوظه
+        }
+    }
+}
+struct EmptyStateView: View {
+
+    @Environment(\.modelContext) private var modelContext //يستقبل اليومية الجديدة، ويتابع التعديلات، ويطلب حفظها، ويسترجع البيانات الموجودة.
+
+    @StateObject private var viewModel = EmptyStateViewModel() //هنا سويت متغير عشان اربطه بالفيو مودل
+    @State private var activeSheet: JournalSheet? //هنا نحدد هل بيضغط زر الاضافه او بيعدل
     var body: some View {
 
-        NavigationStack {
+        NavigationStack { //عشان العنوان والتنقل
 
             ZStack {
 
                 Color.black
                     .ignoresSafeArea()
 
-                if viewModel.journals.isEmpty {
+                if viewModel.journals.isEmpty { //شاشه يتاكد اذا المصفوفه فاضيه رح هنا
 
                     // MARK: - Empty State
 
@@ -49,7 +65,6 @@ struct EmptyStateView: View {
                                 .foregroundStyle(.white)
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(3)
-
                         }
                         .frame(maxWidth: .infinity)
                         .offset(y: -20)
@@ -57,67 +72,125 @@ struct EmptyStateView: View {
                         Spacer()
                     }
 
-                } else {
+                } else { //اذا مو فاضيه طلع كل الجورنال المحفوظه
 
                     // MARK: - Saved Journals
 
-                    List(viewModel.journals) { journal in
+                    List(viewModel.sortedJournals) { journal in //لست اليوميات المرتبه من الفيو مودل
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        ZStack(alignment: .topTrailing) { //مكان ظهور البوك مارك
 
-                            
-                           
-                            HStack(alignment: .top) {
-                                Text(journal.title)
-                                    .font(.system(size: 24, weight: .semibold))
-                                    .foregroundStyle(Color(red: 175/255, green: 153/255, blue: 253/255))
+                            // MARK: - Journal Card
 
-                                Spacer()
+                            Button {
+                                activeSheet = .edit(journal)//بفتح اليومية للتعديل
+                            } label: { //تصميم بطاقه اليوميه
 
-                                Button {
-                                    viewModel.toggleBookmark(journal, context: modelContext)
-                                } label: {
-                                    Image(systemName: journal.isBookmarked ? "bookmark.fill" : "bookmark")
-                                        .foregroundStyle(Color(red: 175/255, green: 153/255, blue: 253/255))
+                                VStack(alignment: .leading, spacing: 8) {
+
+                                    Text(journal.title)
+                                        .font(
+                                            .system(
+                                                size: 24,
+                                                weight: .semibold
+                                            )
+                                        )
+                                        .foregroundStyle(
+                                            Color(
+                                                red: 175/255,
+                                                green: 153/255,
+                                                blue: 253/255
+                                            )
+                                        )
+                                        .padding(.trailing, 35)
+
+                                    Text(
+                                        journal.date,
+                                        format: .dateTime
+                                            .locale(
+                                                Locale(identifier: "en_GB")
+                                            )
+                                            .day(.twoDigits)
+                                            .month(.twoDigits)
+                                            .year()
+                                    )
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.gray)
+
+                                    Text(journal.content)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(5)
                                 }
-                                .buttonStyle(.plain)
+                                .frame(
+                                    maxWidth: .infinity,
+                                    alignment: .leading
+                                )
+                                .padding(16)
+                                .background(
+                                    Color(
+                                        red: 0.12,
+                                        green: 0.12,
+                                        blue: 0.13
+                                    ),
+                                    in: RoundedRectangle(cornerRadius: 20)
+                                )
+                                .contentShape(
+                                    RoundedRectangle(cornerRadius: 20)
+                                )
                             }
+                            .buttonStyle(.plain)
 
-                            
-                            Text(
-                                journal.date,
-                                format: .dateTime
-                                    .locale(Locale(identifier: "en_GB"))
-                                    .day(.twoDigits)
-                                    .month(.twoDigits)
-                                    .year()
-                            )
-                            .font(.system(size: 12))
-                            .foregroundStyle(.gray)
+                            // MARK: - Bookmark Button
 
+                            Button {
 
-                            Text(journal.content)
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white)
-                                .lineLimit(5)
+                                viewModel.toggleBookmark( //يسمح بعكس قيمه البوك مارك
+                                    journal,
+                                    context: modelContext
+                                )
 
+                            } label: {
 
-                            
+                                Image(
+                                    systemName: journal.isBookmarked
+                                        ? "bookmark.fill"
+                                        : "bookmark"
+                                )
+                                .foregroundStyle(
+                                    Color(
+                                        red: 175/255,
+                                        green: 153/255,
+                                        blue: 253/255
+                                    )
+                                )
+                                .padding(8)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .padding(8)
                         }
-                       
-                        
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .background(Color(red: 0.12, green: 0.12, blue: 0.13),
-                                    in: RoundedRectangle(cornerRadius: 20))
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                        .listRowSeparator(.hidden)
 
-                        .listRowBackground(Color.clear)
+                        .listRowInsets(
+                            EdgeInsets(
+                                top: 6,
+                                leading: 16,
+                                bottom: 6,
+                                trailing: 16
+                            )
+                        )
+                        .listRowSeparator(.hidden)// اخف الخط بين اليوميه والثانيه
+                        .listRowBackground(Color.clear)//شيل خلفيه البطاقه
                     }
+
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .contentMargins(.top, 12, for: .scrollContent)                }
+                    .contentMargins(
+                        .top,
+                        12,
+                        for: .scrollContent
+                    )
+                }
             }
 
             // MARK: - Native Navigation Bar
@@ -133,20 +206,23 @@ struct EmptyStateView: View {
 
                     Menu {
 
-                        Button("All Journals") {
-                            viewModel.showBookmarksOnly = false
+                        Button("Sort by Bookmark") {
+                            viewModel.sortOption = .bookmark
                         }
 
-                        Button("Bookmarked") {
-                            viewModel.showBookmarksOnly = true
+                        Button("Sort by Entry Date") {
+                            viewModel.sortOption = .entryDate
                         }
 
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
+
+                        Image(
+                            systemName: "line.3.horizontal.decrease"
+                        )
                     }
 
                     Button {
-                        showNewJournal = true
+                        activeSheet = .new //هنا نقول اذا ضغط بلس اعتبرها نيو
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -160,25 +236,35 @@ struct EmptyStateView: View {
                 placement: .toolbar,
                 prompt: "Search"
             )
+           
         }
 
-        // MARK: - New Journal Sheet
+        // MARK: - Journal Sheet
 
         .sheet(
-            isPresented: $showNewJournal,
+            item: $activeSheet,//يعني ارجع لقيمه الشيت هل نيو ولا ادت
             onDismiss: {
                 viewModel.loadJournals(context: modelContext)
             }
-        ) {
-            NewJournalView()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(28)
-        }
+        ) { sheet in
 
+            Group {
+                switch sheet {
+
+                case .new:
+                    NewJournalView() //اذا كانت جديده ناد هذي 
+
+                case .edit(let journal):
+                    NewJournalView(journal: journal)
+                }
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
+        }
         // MARK: - Load Saved Journals
 
-        .onAppear {
+        .onAppear {//استدعاء لليوميات
             viewModel.loadJournals(context: modelContext)
         }
 
@@ -187,25 +273,8 @@ struct EmptyStateView: View {
     }
 }
 
-// MARK: - New Journal Placeholder
-
-struct NewJournalPlaceholderView: View {
-
-    var body: some View {
-
-        ZStack {
-
-            Color.black
-                .ignoresSafeArea()
-
-            Text("New Journal")
-                .foregroundStyle(.white)
-        }
-        .navigationTitle("New Journal")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
 
 #Preview {
     EmptyStateView()
+        .modelContainer(for: Journal.self)
 }

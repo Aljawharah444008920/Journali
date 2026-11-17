@@ -3,7 +3,7 @@
 //  Journali
 //
 //  Created by Aljawharah Alotaibi on 02/06/1448 AH.
-//
+//التحقق من المدخلات والإنشاء والتعديل والحفظ
 
 import Combine
 import Foundation
@@ -16,10 +16,12 @@ final class NewJournalViewModel: ObservableObject {
     @Published var content = ""
 
     private let journalToEdit: Journal?
-    private let originalTitle: String
+    private let originalTitle: String //هذا يحفظ اذا كانت موجوده
     private let originalContent: String
 
     let journalDate: Date
+
+    // MARK: - Initialization
 
     init(journal: Journal? = nil) {
         self.journalToEdit = journal
@@ -30,14 +32,19 @@ final class NewJournalViewModel: ObservableObject {
         self.originalContent = journal?.content ?? ""
     }
 
+    // MARK: - Unsaved Changes
+
     var hasUnsavedChanges: Bool {
-        title != originalTitle || content != originalContent
-    }
+        title != originalTitle ||
+        content != originalContent
+    }//يتاكد من وجود تغيرات غير محفوظه
+
+    // MARK: - Validation
 
     var canSave: Bool {
         !content.trimmingCharacters(
             in: .whitespacesAndNewlines
-        ).isEmpty
+        ).isEmpty //اقدر احفظها اذا كان الكونتنت مو فاضي
     }
 
     var journalTitle: String {
@@ -48,29 +55,37 @@ final class NewJournalViewModel: ObservableObject {
         return cleanedTitle.isEmpty
             ? "Untitled Journal"
             : cleanedTitle
-    }
+    }//هنا عشان اذا المستخدم ما كتب تايتل يحط له ذا العنوان
+
+    // MARK: - Save Journal
 
     func saveJournal(context: ModelContext) -> Bool {
-        guard canSave else { return false }
 
-        if let journal = journalToEdit {
-            let oldTitle = journal.title
-            let oldContent = journal.content
+        guard canSave else { return false } //ارجع لمثد اقدر احفظه او لا
 
-            journal.title = journalTitle
+        // Editing Existing Journal
+        if let journal = journalToEdit {//هل فعلا فيه يوميه؟
+
+            let oldTitle = journal.title //احفظ العنوان الحالي
+            let oldContent = journal.content //احفظ المحتوى الحالي
+
+            journal.title = journalTitle //تغيير الحالي للجديد
             journal.content = content
 
             do {
                 try context.save()
                 return true
+
             } catch {
                 journal.title = oldTitle
                 journal.content = oldContent
+
                 print("Edit failed:", error)
                 return false
             }
         }
 
+        // Creating New Journal
         let journal = Journal(
             title: journalTitle,
             content: content,
@@ -82,6 +97,7 @@ final class NewJournalViewModel: ObservableObject {
         do {
             try context.save()
             return true
+
         } catch {
             context.delete(journal)
             print("Save failed:", error)

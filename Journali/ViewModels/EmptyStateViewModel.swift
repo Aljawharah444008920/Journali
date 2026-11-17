@@ -5,21 +5,30 @@
 //  Created by Aljawharah Alotaibi on 01/06/1448 AH.
 //
 //
+
+//تحميل اليوميات، Bookmark، Sort
 import SwiftUI
-import Combine //فيها ادوات نحتاجها لمراقبة تغير البيانات
+import Combine //فيها ادوات نحتاجها     لمراقبة تغير البيانات
 import SwiftData
 
-@MainActor//مسؤول عن تنظيم الوصول للكود والبيانات المرتبطة به خصوصا حالة واجهة المستخدم
+enum JournalSortOption {
+    case bookmark
+    case entryDate
+}
+
+
+@MainActor//مسؤول عن تنظيم الوصول والتزامن للكود والبيانات المرتبطة به خصوصا حالة واجهة المستخدم
+
 final class EmptyStateViewModel: ObservableObject {//يسمح للواجهه بمراقبة تغيرات تغيرات البيانات فيه
   @Published var searchText = "" //يعني اذا تغيرت القيمه يعلن انها تغيرت
   @Published var showBookmarksOnly = false
-    
-  @Published var journals: [Journal] = []
-
+    @Published var sortOption: JournalSortOption = .entryDate
+  @Published var journals: [Journal] = [] //مصفوفه يوميات
+//نجيب اليوميات المحفوظه من السويفت داتا
     func loadJournals(context: ModelContext) {
 
         let descriptor = FetchDescriptor<Journal>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
+            sortBy: [SortDescriptor(\.date, order: .reverse)] //جلب جميع البيانات من الاحدث للاقدم
         )
 
         do {
@@ -33,13 +42,43 @@ final class EmptyStateViewModel: ObservableObject {//يسمح للواجهه ب�
     func toggleBookmark(_ journal: Journal, context: ModelContext) {
         journal.isBookmarked.toggle()
         do {
-            try context.save()
+            try context.save() //حفظ التغييرات
         } catch {
             journal.isBookmarked.toggle()
             print("Bookmark save failed:", error)
         }
     }
 
+    //فلتر البحث
+    var filteredJournals: [Journal] {
+        guard !searchText.isEmpty else { return journals }
+        return journals.filter {
+            $0.title.localizedCaseInsensitiveContains(searchText) ||
+            $0.content.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+//داله الترتيب
+    var sortedJournals: [Journal] {
+
+        switch sortOption {
+
+        case .bookmark:
+            return filteredJournals.sorted { //هنا يرجع مصفوفه جديده بترتيب البوك مارك
+                if $0.isBookmarked !=
+                    //ترو لا تساوي فولس رجع الترو وهو البوك
+                    $1.isBookmarked {
+                    return $0.isBookmarked
+                }
+                return $0.date > $1.date//اذا كل اليوميتان متساويه نرتب حسب التاريخ
+            }
+
+        case .entryDate:
+            return filteredJournals.sorted {
+                $0.date > $1.date
+            }
+        }
+    }
 
     }
 

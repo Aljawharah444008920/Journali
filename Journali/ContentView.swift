@@ -4,7 +4,7 @@
 //
 //  Created by Aljawharah Alotaibi on 29/05/1448 AH.
 //
-
+//سبلاش سكرين
 import SwiftUI
 
 struct ContentView: View {
@@ -34,9 +34,9 @@ struct ContentView: View {
                     .foregroundStyle(.white)
                     .padding(.top,16)
             }
-            .offset(y: -40)
+            .offset(y: -40) //ترفع العناصر لفوق
         }
-        .statusBarHidden()
+        .statusBarHidden() //البار حق الساعه والشحن مخفي
     }
 }
 
